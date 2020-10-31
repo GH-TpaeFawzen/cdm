@@ -43,13 +43,13 @@ exiterror() { sleep 1; exit 1; }
 exitcancel() { exit 2; }
 yesno()
 {
-    [ -z "$1" ] && return 1
+    case "$1" in ('') return 1;; esac
     eval value=\$${1}
 
     case "$value" in
-        [Yy][Ee][Ss]|[Tt][Rr][Uu][Ee]|[Oo][Nn]|1) return 0;; 
-        [Nn][Oo]|[Ff][Aa][Ll][Ss][Ee]|[Oo][Ff][Ff]|0) return 1;; 
-        *) warn "invalid value for \`$1'; falling back to \`no' for now.";;
+        ([Yy][Ee][Ss]|[Tt][Rr][Uu][Ee]|[Oo][Nn]|1) return 0;; 
+        ([Nn][Oo]|[Ff][Aa][Ll][Ss][Ee]|[Oo][Ff][Ff]|0) return 1;; 
+        (*) warn "invalid value for \`$1'; falling back to \`no' for now.";;
     esac
 }
 
@@ -122,15 +122,15 @@ if [[ "${#binlist[@]}" == 0 && -d /usr/share/xsessions ]]; then
 fi
 
 case "${#binlist[@]}" in
-    0)
+    (0)
         error "No programs found in cdm config file, /etc/X11/Sessions or /usr/share/xsessions."
         exiterror
         ;;
-    1)
+    (1)
         # No need to call dialog AND clear, only one possible program
         binindex=0
         ;;
-    *)
+    (*)
         menu=()
         for ((count = 0; count < ${#namelist[@]}; count++)); do
             menu=("${menu[@]}" "$((count+countfrom))" "${namelist[${count}]}")
@@ -140,9 +140,9 @@ case "${#binlist[@]}" in
             --backtitle "$longname v$ver" --ok-label ' Select ' \
             --cancel-label ' Exit ' --menu 'Select session' 0 0 0 "${menu[@]}"
         )
-        if [[ $? != 0 ]]; then
+        case $? in ([!0]*)
             clear; exitcancel
-        fi
+        esac
         clear
         let binindex-=countfrom
         ;;
@@ -152,7 +152,7 @@ esac
 bin=($(eval echo "${binlist[${binindex}]}"))
 case ${flaglist[$binindex]} in
     # *C*onsole programs.
-    [Cc])
+    ([Cc])
         # If $bin is a login shell, it might `exec' cdm again, causing an endless
         # loop. To solve this problem, export $CDM_SPAWN when `exec'ing $bin and
         # only let the shell automatically `exec' cdm when $CDM_SPAWN is not set.
@@ -167,7 +167,7 @@ case ${flaglist[$binindex]} in
         ;;
 
     # *X* programs.
-    [Xx])
+    ([Xx])
         # If X is already running and locktty=yes, activate it.
         if $(yesno locktty) && xdpyinfo -display ":$display.0" &> /dev/null; then
             chvt "$((display+xtty))"
@@ -190,16 +190,16 @@ case ${flaglist[$binindex]} in
         done
 
         # Support for running X in current tty.
-        if [[ $xtty == 'keep' ]]; then
+        case "$xtty" in (keep)
             vt="$(tty)"
             if [[ "$vt" != '/dev/tty'* ]]; then
                 error 'invalid TTY.'
                 exiterror
             fi
             vt="${vt#/dev/tty}"
-        else
+        ;;(*)
             vt="$((xtty+display))"
-        fi
+        ;;esac
 
         serverargs=(":${display}" "${serverargs[@]}" "vt$vt")
 
@@ -215,7 +215,7 @@ case ${flaglist[$binindex]} in
         fi
         ;;
 
-    *)
+    (*)
         error "unknown flag: \`${flaglist[$binindex]}'."
         exiterror
         ;;
