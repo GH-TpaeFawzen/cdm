@@ -55,21 +55,18 @@ yesno()
 
 # Source cdm configurations.
 
-if [[ -n "$1" ]]; then
-    if [[ -f "$1" ]]
-    then
+case "$1" in (?*)
+    if [ -f "$1" ]; then
         source "$1"
     else
         error "config file \`$1' does not exist."
         exiterror
     fi
-elif [[ -f "$HOME/.cdmrc" ]]; then
-    source "$HOME/.cdmrc"
-elif [[ -f "${XDG_CONFIG_HOME:-$HOME/.config}/cdm/cdmrc" ]]; then
-    source "${XDG_CONFIG_HOME:-$HOME/.config}/cdm/cdmrc"
-elif [[ -f /etc/cdmrc ]]; then
-    source /etc/cdmrc
-fi
+;;(*)
+    for dir in "$HOME/.cdmrc" "${XDG_CONFIG_HOME:-$HOME/.config}/cdm/cdmrc" "/etc/cdmrc"; do
+        [ -f "$dir" ] && { source "$dir"; break; }
+    done
+;;esac
 
 # Default options.
 
